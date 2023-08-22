@@ -32,26 +32,26 @@ export const register = async (req, res) => {
         password,
         email
     });
-	res.status(200).json({ data: registeredUser })
+	return res.status(200).json({ data: registeredUser })
 }
 //login user
 export const login = async(req, res) => {
 	 const { email, password } = req.body
     //validate email & password
     if (!email || !password) {
-        res.status(400).json("Please add email and password")
+        return res.status(400).json("Please add email and password")
     } 
     //find user
     const user = await User.findOne({ email })
 
     if(!user) {
-        res.status(400).json("User not found! Please sign up")
+        return res.status(400).json("User not found! Please sign up")
     }
     // check password
     const verifyPassword = await bcrypt.compare(password, user.password)
     // assign a token
     const token = generateToken(user._id, user.username)
-       res.cookie("token", token, {
+       return res.cookie("token", token, {
             path: "/",
             httpOnly: true,
             expires: new Date(Date.now() + 1000 * 86400),
@@ -60,7 +60,7 @@ export const login = async(req, res) => {
        })
     if (user && verifyPassword) {
         const {_id, username, email } = user
-        res.status(200).json({data: {_id, username, email, token }})
+        return res.status(200).json({data: {_id, username, email, token }})
     } else {
         res.status(400)
         throw new Error("Invalid email or password!")
@@ -75,13 +75,13 @@ export const profile = async(req, res) => {
 	}
 	jwt.verify(token, process.env.JWT_SECRET, {}, (err, data) => {
 		if (err) throw err;
-		res.status(200).json({data})
+		return res.status(200).json({data})
 	})
 }
 
 //logout
 export const logout = async(req, res) => {
-	res.cookie("token", "").json("ok")
+	return res.cookie("token", "").json("ok")
 }
 
 // this is a great post from the article

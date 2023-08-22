@@ -34,10 +34,10 @@ export const createCategory = async (req, res) => {
             desc: req.body.desc,
         })
         const savedCat = await newCat.save()
-        res.status(200).json({ data: savedCat, status: 200, statusText: "ok" })
+        return res.status(200).json({ data: savedCat, status: 200, statusText: "ok" })
         console.log(savedCat)
         } catch (error) {
-            res.status(401).json({data: { error, status: 401 }})
+            return res.status(401).json({data: { error, status: 401 }})
         }
     // })
 }
@@ -45,9 +45,9 @@ export const createCategory = async (req, res) => {
 export const getCategories = async (req, res) => {
 	try {
         const categories = await Category.find()
-        res.status(200).json({ data: categories, status: 200, statusText: "ok" })
+        return res.status(200).json({ data: categories, status: 200, statusText: "ok" })
     } catch (error) {
-        res.status(500).json({msg: error})
+        return res.status(500).json({msg: error})
     }
 }
 
@@ -56,9 +56,9 @@ export const getCategory = async (req, res) => {
 	try {
 		const { id } = req.params
         const category = await Category.findById(id)
-        res.status(200).json({ data: category, status: 200, statusText: "ok" })
+        return res.status(200).json({ data: category, status: 200, statusText: "ok" })
     } catch (error) {
-        res.status(500).json({msg: error})
+        return res.status(500).json({msg: error})
     }
 }
 
@@ -79,7 +79,7 @@ export const editCategory = async (req, res) => {
             desc,
         }}, {new: true})
 
-        res.status(200).json(updatedCategory)
+        return res.status(200).json(updatedCategory)
         } catch (error) {
             return res.status(400).json({ msg: error })
         }
@@ -92,8 +92,8 @@ export const deleteCategory = async (req, res) => {
     const catId = req.params.id
     try {
         await Category.findByIdAndDelete(req.params.id)
-        res.status(200).json({msg: "Category has been deleted"})
+        return res.status(200).json({msg: "Category has been deleted"})
     } catch (error) {
-        res.status(401).json({error: error, status: 401 })
+        return res.status(401).json({error: error, status: 401 })
     }
 }

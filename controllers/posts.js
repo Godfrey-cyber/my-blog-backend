@@ -36,11 +36,11 @@ export const create = async (req, res) => {
 				try {
 					await Category.findByIdAndUpdate(catId, {$push: { blogId: post._id}})
 				} catch (error) {
-					res.status(400).json({ msg: error })
+					return res.status(400).json({ msg: error })
 				}
-				 res.status(200).json({data: {post, status: 200, statusText: "ok"}})
+				 return res.status(200).json({data: {post, status: 200, statusText: "ok"}})
 			} catch (error) {
-				res.status(400).json(error)
+				return res.status(400).json(error)
 			}
 	// 	res.status(200).json(postst)
 	})
@@ -69,9 +69,9 @@ export const create = async (req, res) => {
 export const allPosts = async(req, res) => {
 	try {
 		const posts = await Post.find().populate('author', ['username']).sort({createdAt: -1}).limit(20)
-		res.status(200).json(posts)
+		return res.status(200).json(posts)
 	} catch (err) {
-		res.status(400).json({ msg: "Something went wrong" })
+		return res.status(400).json({ msg: "Something went wrong" })
 	}
 }
 
@@ -79,9 +79,9 @@ export const post = async (req, res) => {
 	try {
 		const { id } = req.params
 		const post = await Post.findById(id).populate('author', ['username'])
-		res.status(200).json(post)
+		return res.status(200).json(post)
 	} catch(err) {
-		res.status(400).json({ msg: "There was an error in completing the request... Please try again later"})
+		return res.status(400).json({ msg: "There was an error in completing the request... Please try again later"})
 	}
 }
 // <--------------edit post-------------------> 
@@ -128,9 +128,9 @@ export const edit = async (req, res) => {
 			    await Category.findByIdAndUpdate(catId, {$push: { blogId: updatedProduct._id}})
 			}
 		} catch (error) {
-			res.status(400).json({ msg: error })
+			return res.status(400).json({ msg: error })
 		}	
-		res.status(200).json(updatedProduct)
+		return res.status(200).json(updatedProduct)
 		} catch (error) {
 			return res.status(400).json({ msg: error })
 		}
@@ -149,9 +149,9 @@ export const deleteCat = async (req, res) => {
 		const catId = req.params.id
 		try {
 			await Post.findByIdAndDelete(req.params.id)
-        	res.status(200).json({msg: "Post has been deleted"})
+        	return res.status(200).json({msg: "Post has been deleted"})
 		} catch (error) {
-			res.status(401).json({error: error, status: 401 })
+			return res.status(401).json({error: error, status: 401 })
 		}
 	})
 }
@@ -160,9 +160,9 @@ export const deleteCat = async (req, res) => {
 export const getByCategory = async (req, res) => {
 	try {
 		const products = await Post.find({ catId: req.params.id }).populate('author', ['username']).sort({createdAt: -1}).limit(20)
-        res.status(200).json({ data: products, status: 200, statusText: "ok" })
+        return res.status(200).json({ data: products, status: 200, statusText: "ok" })
 	} catch(error) {
-		res.status(401).json({error: error, status: 401 })
+		return res.status(401).json({error: error, status: 401 })
 	}
 }
 
