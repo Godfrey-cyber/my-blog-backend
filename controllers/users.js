@@ -17,5 +17,9 @@ export const login = async(req, res) => {
     }
     // check password
     const verifyPassword = await bcrypt.compare(password, user.password)
-    res.status(200).json({user})
+    if (verifyPassword) {
+        return res.status(200).status({user})
+    } else {
+        throw new Error('Please type the correct credentials')
+    }
 }
