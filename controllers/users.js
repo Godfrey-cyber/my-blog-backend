@@ -23,3 +23,13 @@ export const login = async(req, res) => {
         throw new Error('Please type the correct credentials')
     }
 }
+
+// get a loggedin user
+export const getUser = async (req, res) => {
+    try {
+        const users = await User.findById(req.userId).sort({ createdAt: -1} ).limit(5).select("-password") : await User.find().select("-password")
+        return res.status(200).json({ users, status: 'Success', count: users.length })
+    } catch(error) {
+
+    }
+}

@@ -1,70 +1,74 @@
 import multer from "multer"
-import Post from "../models/Posts.js"
-import Category from "../models/Category.js"
-const uploadMiddleware = multer({ dest: "uploads/"})
-import fs from "fs"
-import jwt from "jsonwebtoken"
+import multer from "multer";
+import Post from "../models/Posts.js";
+import Category from "../models/Category.js";
+import fs from "fs";
+import jwt from "jsonwebtoken";
+
+// Initialize multer for handling file uploads
+const uploadMiddleware = multer({ dest: "uploads/" });
 
 export const create = async (req, res) => {
-	// -----------handling img-----------------
-	const { originalname, path } = req.file
-	const name = originalname.split('.')
-	const extension = name[name.length - 1]
-	const imagePath = `${path}.${extension}`
-	fs.renameSync(path, imagePath)
-// ----------- verifying token -----------------
-	const { token } = req.cookies
-	if (!token) {
-		return res.status(401).json("Not authorized please login")
-		// throw new Error("Not authorized please login")
+	try {
+	    // ----------- Handling image -----------------
+	    if (!req.file) {
+	      	return res.status(400).json({ msg: "No image file uploaded." });
+	    }
+
+	    const { originalname, path } = req.file;
+	    const extension = originalname.split('.').pop(); // Safely get file extension
+	    const imagePath = `${path}.${extension}`;
+
+	    // Rename the file asynchronously to avoid blocking event loop
+	    fs.rename(path, imagePath, (err) => {
+		    if (err) {
+		        return res.status(500).json({ msg: "Error renaming file", error: err });
+		    }
+	    });
+
+	    // ----------- Verifying token -----------------
+	    const { token } = req.cookies;
+	    if (!token) {
+	      	return res.status(401).json({ msg: "Not authorized, please login" });
+	    }
+	    // ----------- Creating post & linking to category -----------------
+	    const { title, summary, content, catId, catName } = req.body;
+
+	    // Validate category
+	    const categoryDoc = await Category.findById(catId);
+	    if (!categoryDoc) {
+	      	return res.status(400).json({ msg: "Category not found" });
+	    }
+
+	    // Create the post document
+	    const post = await Post.create({
+		    title,
+		    summary,
+		    content,
+		    catId,
+		    catName: categoryDoc.name,
+		    author: req.userId,
+		    photo: imagePath,
+	    });
+
+	    // Link the post to the category
+	    await Category.findByIdAndUpdate(catId, {
+	      	$push: { blogId: post._id },
+	    });
+
+	    // Return success response
+	    return res.status(200).json({
+		    data: {
+		        post,
+		        status: 200,
+		        statusText: "OK",
+		    },
+	    });
+	} catch (error) {
+	    console.error("Error creating post:", error);
+	    return res.status(500).json({ msg: "Internal server error", error });
 	}
-	jwt.verify(token, process.env.JWT_SECRET, {}, async (err, data) => {
-		if (err) throw err;
-			const { title, summary, content, catId, catName } = req.body
-			// ----------- creating post doc & pushing it to the category -----------------
-			const categoryDoc = await Category.findById(catId)
-			try {
-				const post = await Post.create({
-					title,
-					summary,
-					content,
-					catId,
-					catName: categoryDoc.name,
-					author: data.id,
-					photo: imagePath
-				})
-				try {
-					await Category.findByIdAndUpdate(catId, {$push: { blogId: post._id}})
-				} catch (error) {
-					return res.status(400).json({ msg: error })
-				}
-				 return res.status(200).json({data: {post, status: 200, statusText: "ok"}})
-			} catch (error) {
-				return res.status(400).json(error)
-			}
-	// 	res.status(200).json(postst)
-	})
-}
-
-// ----------------ignore this---------------
-// export const createRoom = async (req, res, next) => {
-//     const hotelId = req.params.hotelId
-//     const newRoom = new Room(req.body)
-
-//     try {
-//         const savedRoom = await newRoom.save()
-//         try {
-//             await Hotel.findByIdAndUpdate(hotelId, {$push:{ rooms: savedRoom._id}})
-//         } catch (error) {
-//             next(error)
-//         }
-//         res.status(200).json({data: {savedRoom, status: 200}})
-//     } catch (error) {
-//         next(error)s
-//     }
-// }
-
-// ----------------ignore this---------------
+};
 
 export const allPosts = async(req, res) => {
 	try {
@@ -102,58 +106,39 @@ export const edit = async (req, res) => {
 		return res.status(401).json({ error: "Not authorized please login"})
 	}
 
-	jwt.verify(token, process.env.JWT_SECRET, {}, async (err, data) => {
-		if (err) throw err;
-		const { id, title, summary, content, catId, catName } = req.body
-		const categoryDoc = await Category.findById(catId)
-		const postDoc = await Post.findById(id)
-		const checkAuth = JSON.stringify(postDoc.author) === JSON.stringify(data.id)
-		if (!checkAuth) {
-			return res.status(400).json({ msg: "You are not authorized to edit this post..."})
+	try {
+		const updatedProduct = await Post.findByIdAndUpdate(id, {$set: {
+		title,
+		summary,
+		content,
+		catId,
+		catName: categoryDoc.name,
+		author: req.userId,
+		photo: imagePath ? imagePath : postDoc.photo,
+	}}, {new: true})
+	try {
+		const checkId = req.body.catId === postDoc.catId
+		console.log(checkId)
+		if(!checkId) {
+		    await Category.findByIdAndUpdate(catId, {$push: { blogId: updatedProduct._id}})
 		}
-		try {
-			const updatedProduct = await Post.findByIdAndUpdate(id, {$set: {
-			title,
-			summary,
-			content,
-			catId,
-			catName: categoryDoc.name,
-			author: data.id,
-			photo: imagePath ? imagePath : postDoc.photo,
-		}}, {new: true})
-		try {
-			const checkId = req.body.catId === postDoc.catId
-			console.log(checkId)
-			if(!checkId) {
-			    await Category.findByIdAndUpdate(catId, {$push: { blogId: updatedProduct._id}})
-			}
-		} catch (error) {
-			return res.status(400).json({ msg: error })
-		}	
-		return res.status(200).json(updatedProduct)
-		} catch (error) {
-			return res.status(400).json({ msg: error })
-		}
-	})
+	} catch (error) {
+		return res.status(400).json({ msg: error })
+	}	
+	return res.status(200).json(updatedProduct)
+	} catch (error) {
+		return res.status(400).json({ msg: error })
+	}
 }
 
 export const deleteCat = async (req, res) => {
-	const { token } = req.cookies
-	console.log(token)
-	if (!token) {
-		return res.status(401).json({ error: "Not authorized please login"})
+	const catId = req.params.id
+	try {
+		await Post.findByIdAndDelete(req.params.id)
+    	return res.status(200).json({msg: "Post has been deleted"})
+	} catch (error) {
+		return res.status(401).json({error: error, status: 401 })
 	}
-
-    jwt.verify(token, process.env.JWT_SECRET, {}, async (err, data) => {
-		if (err) throw err;
-		const catId = req.params.id
-		try {
-			await Post.findByIdAndDelete(req.params.id)
-        	return res.status(200).json({msg: "Post has been deleted"})
-		} catch (error) {
-			return res.status(401).json({error: error, status: 401 })
-		}
-	})
 }
 
 // GET POSTS BY CATEGORY

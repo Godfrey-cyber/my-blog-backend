@@ -1,11 +1,11 @@
 import express from "express"
-const router = express.Router()
+import { authenticate } from "../middlewares/authMiddleware.js"
 import { createCategory, editCategory, getCategories, getCategory, deleteCategory } from "../controllers/categories.js"
-
-router.post("/create", createCategory)
+const router = express.Router()
+router.post("/create", authenticate, createCategory)
 router.get("/getCategories", getCategories)
 router.get("/getCategory/:id", getCategory)
-router.put("/editCategory/:id", editCategory)
-router.delete("/deleteCategory/:id", deleteCategory)
+router.put("/editCategory/:id", authenticate, editCategory)
+router.delete("/deleteCategory/:id", authenticate, deleteCategory)
 
 export default router

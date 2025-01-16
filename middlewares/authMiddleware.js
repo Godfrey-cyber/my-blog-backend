@@ -1,7 +1,7 @@
 import asyncHandler from "express-async-handler"
 import jwt from "jsonwebtoken"
 
-export const protect = asyncHandler(async (req, res, next) => {
+export const authenticate = asyncHandler(async (req, res, next) => {
 	try {
 		const token = req.cookies.token
 		if (!token) {
