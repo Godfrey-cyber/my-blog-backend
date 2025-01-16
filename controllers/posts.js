@@ -66,7 +66,7 @@ export const create = async (req, res) => {
 	    });
 	} catch (error) {
 	    console.error("Error creating post:", error);
-	    return res.status(500).json({ msg: "Internal server error", error });
+	    return res.status(500).json({ msg: "Internal server error", error.message });
 	}
 };
 
@@ -75,7 +75,7 @@ export const allPosts = async(req, res) => {
 		const posts = await Post.find().populate('author', ['username']).sort({createdAt: -1}).limit(20)
 		return res.status(200).json(posts)
 	} catch (err) {
-		return res.status(400).json({ msg: "Something went wrong" })
+		return res.status(400).json({ msg: error.message })
 	}
 }
 
@@ -85,7 +85,7 @@ export const post = async (req, res) => {
 		const post = await Post.findById(id).populate('author', ['username'])
 		return res.status(200).json(post)
 	} catch(err) {
-		return res.status(400).json({ msg: "There was an error in completing the request... Please try again later"})
+		return res.status(400).json({ msg: err.message})
 	}
 }
 // <--------------edit post-------------------> 
