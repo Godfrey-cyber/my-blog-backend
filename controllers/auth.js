@@ -72,8 +72,8 @@ export const login = async(req, res) => {
         if (!verifyPassword) return res.status(400).json({ msg: "🚫 Invalid email or password." });
 
         ////////////////////// Generate tokens ///////////////////
-        const accessToken = createAccessToken(userExists._id);
-        const refreshToken = createRefreshToken(userExists._id);
+        const accessToken = createAccessToken(user._id);
+        const refreshToken = createRefreshToken(user._id);
         
         ////////////////////// Send refresh token to the front-end /////////////////////////
         res.cookie('refreshToken', refreshToken, {
