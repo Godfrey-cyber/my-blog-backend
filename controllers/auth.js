@@ -1,69 +1,102 @@
 import jwt from "jsonwebtoken"
 import bcrypt from "bcryptjs"
 import User from "../models/User.js"
+import { createRefreshToken, createAccessToken, validateEmail, validatePassword } from "../middlewares/utilities.js"
 
-
-const generateToken = (id, username) => {
-    return jwt.sign({ id, username }, process.env.JWT_SECRET, { expiresIn: "1d"})
-}
-// register user
+// register a user
 export const register = async (req, res) => {
-	const { username, password, email } = req.body
-	// const userInfo = await User.create( { username, password, email } )
+    try {
+        const { username, password, email } = req.body
+        // const userInfo = await User.create( { username, password, email } )
 
-	if (!email || !username || !password) {
-        res.status(400)
-        throw new Error("Please enter all fiedls")
-    } 
+        if (!email || !username || !password) {
+            res.status(400)
+            throw new Error("Please enter all fiedls")
+        } 
 
-    if (password.length < 6) {
-        res.status(400)
-        throw new Error("Password must be more than 6 characters");
-    } 
+        // Validate password format
+        try {
+            validatePassword(password);
+        } catch (error) {
+            return res.status(400).json({ msg: error.message });
+        }
 
-    const userExists = await User.findOne({ email })
-    if (userExists) {
-        res.status(400)
-        throw new Error("There exists a user registered with that email already")
-    } 
+        // Validate email format
+        try {
+            validateEmail(email);
+        } catch (error) {
+            return res.status(400).json({ msg: error.message });
+        }
 
-    const registeredUser = await User.create({
-        username,
-        password,
-        email
-    });
-	return res.status(200).json({ data: registeredUser })
+        const userExists = await User.findOne({ email })
+        if (userExists) return res.status(400).json({ message: 'User already exists' });
+
+        const registeredUser = await User.create({
+            username,
+            password,
+            email
+        });
+        return res.status(201).json({ msg: "User Registration successfull🥇" })
+    } catch (error) {
+        res.status(500).json({ message: error.message })
+    }
+	
 }
 //login user
 export const login = async(req, res) => {
-	 const { email, password } = req.body
+	try {
+        const { email, password } = req.body
     //validate email & password
-    if (!email || !password) {
-        return res.status(400).json("Please add email and password")
-    } 
-    //find user
-    const user = await User.findOne({ email })
+        if (!email || !password) return res.status(400).json({msg: '❌ Please fill in all fields'})
 
-    if(!user) {
-        return res.status(400).json("User not found! Please sign up")
-    }
-    // check password
-    const verifyPassword = await bcrypt.compare(password, user.password)
-    // assign a token
-    const token = generateToken(user._id, user.username)
-       return res.cookie("token", token, {
+         // Validate password format
+        try {
+            validatePassword(password);
+        } catch (error) {
+            return res.status(400).json({ msg: error.message });
+        }
+
+        // Validate email format
+        try {
+            validateEmail(email);
+        } catch (error) {
+            return res.status(400).json({ msg: error.message });
+        }
+
+        //find user
+        const user = await User.findOne({ email })
+        if(!user) return res.status(400).json({msg: "🚫 This email does not exist!"})
+
+        // check password
+        const verifyPassword = await bcrypt.compare(password, user.password)
+        if (!ifPasswordIsCorrect) return res.status(400).json({ msg: "🚫 Invalid email or password." });
+
+        ////////////////////// Generate tokens ///////////////////
+        const accessToken = createAccessToken(userExists._id);
+        const refreshToken = createRefreshToken(userExists._id);
+        
+        ////////////////////// Send refresh token to the front-end /////////////////////////
+        res.cookie('refreshToken', refreshToken, {
             path: "/",
             httpOnly: true,
-            expires: new Date(Date.now() + 1000 * 86400),
-            sameSite: "none",
-            secure: true
-       })
-    if (user && verifyPassword) {
-        const {_id, username, email } = user
-        return res.status(200).json({data: {_id, username, email, token }})
-    } else {
-        res.status(400)
-        throw new Error("Invalid email or password!")
+            maxAge: new Date(Date.now() + 1000 * 86400),
+            sameSite: "Strict",
+            secure: process.env.NODE_ENV === 'production'
+        })
+        res.status(200).json({ accessToken, msg: "Login successfull🥇" })
+    } catch (error) {
+        return res.status(500).json({ message: error.message })
+    }
+}
+
+// get users 
+export const getUsers = async(req, res) => {
+    console.log(req.query.username)
+    try{
+        const users = req.query.new ? await User.find().sort({ createdAt: -1} ).limit(5).select("-password") : await User.find().select("-password")
+        return res.status(200).json({ users, status: 'Success', count: users.length })
+    } catch(error) {
+        return res.status(500).json({ status: 'Fail', msg: error.message })
     }
 }
 
@@ -73,10 +106,22 @@ export const profile = async(req, res) => {
 	if (!token) {
 		return res.status(401).json({ message: "You are not logged in"})
 	}
-	jwt.verify(token, process.env.JWT_SECRET, {}, (err, data) => {
+	jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, {}, (err, data) => {
 		if (err) throw err;
 		return res.status(200).json({data})
 	})
+}
+
+// Refresh token
+export const tokenRefresh = (req, res) => {
+    const { refreshToken } = req.cookies;
+    if (!refreshToken) return res.status(403).json({ message: "Refresh token not provided" });
+    jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (error, decoded) => {
+        if (error) return res.status(403).json({ message: "Invalid refresh token" });
+
+        const accessToken = createAccessToken(decoded.userId);
+        res.status(200).json({ accessToken });
+    });
 }
 
 //logout
