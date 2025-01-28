@@ -18,7 +18,7 @@ import postRoutes from "./routes/posts.js"
 import categoryRoutes from "./routes/categories.js"
 
 const app = express()
-app.use(cors({ credentials: true, origin: "https://my-blog-frontend-kappa.vercel.app" }))
+app.use(cors({ credentials: true, origin: process.env.CLIENT_URL || 'http://localhost:5173' }))
 app.use(express.json())
 app.use(express.json({limit: '25mb'}));
 // app.use(express.urlencoded({limit: '25mb'}));
@@ -35,9 +35,9 @@ mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true}).
 mongoose.connection.on("disconnected", () => {
     console.log("MongoDatabase disconnected")
 })
-app.use("/users", userRoutes)
-app.use("/posts", postRoutes)
-app.use("/categories", categoryRoutes)
+app.use("/api/v1/users", userRoutes)
+app.use("/api/v1/posts", postRoutes)
+app.use("/api/v1/categories", categoryRoutes)
 
 // dns.resolve('safaricom.com', (err, value) => { 
 //     if(err) { 

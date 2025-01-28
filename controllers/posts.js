@@ -1,5 +1,4 @@
 import multer from "multer"
-import multer from "multer";
 import Post from "../models/Posts.js";
 import Category from "../models/Category.js";
 import fs from "fs";
@@ -66,7 +65,7 @@ export const create = async (req, res) => {
 	    });
 	} catch (error) {
 	    console.error("Error creating post:", error);
-	    return res.status(500).json({ msg: "Internal server error", error.message });
+	    return res.status(500).json({ msg: error.message || "Internal server error"  });
 	}
 };
 
