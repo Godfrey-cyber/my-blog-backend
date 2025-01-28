@@ -18,7 +18,7 @@ import postRoutes from "./routes/posts.js"
 import categoryRoutes from "./routes/categories.js"
 
 const app = express()
-app.use(cors({ credentials: true, origin: process.env.CLIENT_URL || 'http://localhost:5173' }))
+app.use(cors({ credentials: true, origin: process.env.CLIENT_URL }))
 app.use(express.json())
 app.use(express.json({limit: '25mb'}));
 // app.use(express.urlencoded({limit: '25mb'}));
